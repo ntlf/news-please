@@ -16,6 +16,7 @@ from scrapy.exceptions import DropItem
 from NewsArticle import NewsArticle
 from .extractor import article_extractor
 from ..config import CrawlerConfig
+from ..config import JsonConfig
 
 if sys.version_info[0] < 3:
     ConnectionError = OSError
@@ -53,6 +54,29 @@ class ArticleMasterExtractor(object):
 
     def process_item(self, item, spider):
         return self.extractor.extract(item)
+
+
+class AddLocation(object):
+    """
+    Add site's location object to the article
+    """
+
+    def __init__(self):
+        self.log = logging.getLogger(__name__)
+        self.json = JsonConfig.get_instance()
+
+    def process_item(self, item, spider):
+        sites = self.json.get_site_objects()
+        
+        for index, site in enumerate(sites):
+            if ExtractedInformationStorage.ensure_str(item["source_domain"]) in site["url"]:
+                if "location" in site:
+                    updatedItem = {}
+                    updatedItem["location"] = dict(site["location"])
+                    updatedItem.update(item)
+                    return updatedItem
+        
+        return item
 
 
 class RSSCrawlCompare(object):
@@ -300,7 +324,8 @@ class ExtractedInformationStorage(object):
             'title_rss': ExtractedInformationStorage.ensure_str(item['rss_title']),
             'source_domain': ExtractedInformationStorage.ensure_str(item['source_domain']),
             'text': item['article_text'],
-            'url': item['url']
+            'url': item['url'],
+            'location': item['location'] if "location" in item else None
         }
 
         # clean values
