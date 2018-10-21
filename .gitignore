@@ -9,3 +9,5 @@ __pycache__/
 news-please.iml
 
 venv/
+
+.vscode/
